@@ -1,0 +1,34 @@
+openapi: "3.0.3"
+info:
+  title: WiFi CDMX API
+  description: |
+    API REST + GraphQL para consultar los puntos de acceso WiFi públicos
+    de la Ciudad de México (datos abiertos CDMX).
+  version: "1.0.0"
+
+servers:
+  - url: http://localhost:8080
+    description: Desarrollo local
+
+tags:
+  - name: System
+    description: Estado del servicio
+  - name: WiFi
+    description: Puntos de acceso WiFi REST
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      tags: [System]
+      responses:
+        "200":
+          description: Servicio activo
+          content:
+            application/json:
+              example: {"status":"UP","db":"UP"}
+        "503":
+          description: Base de datos no disponible
+          content:
+            application/json:
+              example: {"status":"UP","db":"DOWN"}
