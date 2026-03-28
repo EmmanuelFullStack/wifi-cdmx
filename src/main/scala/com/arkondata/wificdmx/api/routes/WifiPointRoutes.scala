@@ -37,6 +37,7 @@ final class WifiPointRoutes(service: WifiPointService) extends LazyLogging {
 
   def routes: Route =
     healthRoute ~
+    swaggerRoute ~
     pathPrefix("api" / "v1") { wifiRoutes }
 
   private def healthRoute: Route =
@@ -51,6 +52,38 @@ final class WifiPointRoutes(service: WifiPointService) extends LazyLogging {
               HttpEntity(ContentTypes.`application/json`,
                 """{"status":"UP","db":"DOWN"}"""))
         }
+      }
+    }
+
+  private def swaggerRoute: Route =
+    path("openapi.yaml") {
+      get { getFromResource("openapi.yaml") }
+    } ~
+    path("swagger") {
+      get {
+        complete(HttpEntity(ContentTypes.`text/html(UTF-8)`,
+          """<!DOCTYPE html>
+            |<html>
+            |<head>
+            |  <title>WiFi CDMX API – Docs</title>
+            |  <meta charset="utf-8"/>
+            |  <meta name="viewport" content="width=device-width, initial-scale=1">
+            |  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css">
+            |</head>
+            |<body>
+            |<div id="swagger-ui"></div>
+            |<script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+            |<script>
+            |  SwaggerUIBundle({
+            |    url: "/openapi.yaml",
+            |    dom_id: '#swagger-ui',
+            |    presets: [SwaggerUIBundle.presets.apis],
+            |    layout: "BaseLayout",
+            |    deepLinking: true
+            |  })
+            |</script>
+            |</body>
+            |</html>""".stripMargin))
       }
     }
 

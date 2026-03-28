@@ -69,6 +69,7 @@ object Main extends App with LazyLogging {
       logger.info(s"WiFi CDMX API running at http://${addr.getHostString}:${addr.getPort}/")
       logger.info(s"  REST:    http://${addr.getHostString}:${addr.getPort}/api/v1/wifi")
       logger.info(s"  GraphQL: http://${addr.getHostString}:${addr.getPort}/api/v1/graphql")
+      logger.info(s"  Swagger: http://${addr.getHostString}:${addr.getPort}/swagger")
     case Failure(ex) =>
       logger.error(s"Failed to bind on $host:$port", ex)
       system.terminate()
