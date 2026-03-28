@@ -8,6 +8,7 @@ import akka.http.scaladsl.server.Directives._
 import com.arkondata.wificdmx.api.routes.WifiPointRoutes
 import com.arkondata.wificdmx.repository.{DatabaseConfig, SlickWifiPointRepository}
 import com.arkondata.wificdmx.service.WifiPointServiceImpl
+import com.arkondata.wificdmx.util.DataSeeder
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
 
@@ -15,21 +16,47 @@ import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
+// ============================================================
+// Application entrypoint
+//
+// Wiring order:
+//   1. Actor system + execution context
+//   2. Config
+//   3. DB + repo + service
+//   4. HTTP routes
+//   5. Async seeder (API available immediately while seeding)
+//   6. HTTP server bind
+//   7. Graceful shutdown hook
+// ============================================================
+
 object Main extends App with LazyLogging {
 
   implicit val system: ActorSystem[Nothing] =
     ActorSystem(Behaviors.empty, "wifi-cdmx")
   implicit val ec: ExecutionContext = system.executionContext
 
-  val config = ConfigFactory.load()
-  val host   = config.getString("wifi-cdmx.http.host")
-  val port   = config.getInt("wifi-cdmx.http.port")
+  val config    = ConfigFactory.load()
+  val host      = config.getString("wifi-cdmx.http.host")
+  val port      = config.getInt("wifi-cdmx.http.port")
+  val xlsxUrl   = config.getString("wifi-cdmx.data.xlsx-url")
+  val localPath = config.getString("wifi-cdmx.data.local-path")
 
+  // ── Infrastructure ────────────────────────────────────────
   val dbConfig   = new DatabaseConfig(config)
   val repo       = new SlickWifiPointRepository(dbConfig)
   val service    = new WifiPointServiceImpl(repo)
   val restRoutes = new WifiPointRoutes(service)
+  val seeder     = new DataSeeder(repo, xlsxUrl, localPath)
 
+  // ── Seeder (background — server available immediately) ────
+  seeder.seed().onComplete {
+    case Success(Right(n)) if n > 0 => logger.info(s"Seeder: $n records inserted")
+    case Success(Right(_))          => logger.info("Seeder: data already present, skipped")
+    case Success(Left(err))         => logger.warn(s"Seeder warning (non-fatal): $err")
+    case Failure(ex)                => logger.error("Seeder failed unexpectedly", ex)
+  }
+
+  // ── HTTP server ───────────────────────────────────────────
   val bindingFuture: Future[ServerBinding] =
     Http().newServerAt(host, port).bind(restRoutes.routes)
 
@@ -37,12 +64,14 @@ object Main extends App with LazyLogging {
     case Success(binding) =>
       val addr = binding.localAddress
       logger.info(s"WiFi CDMX API running at http://${addr.getHostString}:${addr.getPort}/")
-      logger.info(s"  REST: http://${addr.getHostString}:${addr.getPort}/api/v1/wifi")
+      logger.info(s"  REST:    http://${addr.getHostString}:${addr.getPort}/api/v1/wifi")
+      logger.info("Seeder is running in background — data will be available shortly.")
     case Failure(ex) =>
       logger.error(s"Failed to bind on $host:$port", ex)
       system.terminate()
   }
 
+  // ── Graceful shutdown ─────────────────────────────────────
   sys.addShutdownHook {
     logger.info("Shutting down — draining in-flight requests...")
     val shutdown = bindingFuture
