@@ -45,12 +45,73 @@ final class SlickWifiPointRepository(dbConfig: DatabaseConfig)(implicit ec: Exec
   ): Future[Either[AppError, PagedResult[WifiPoint]]] =
     run(countAndPage(points.filter(_.alcaldia.toLowerCase === alcaldia.toLowerCase), p))
 
+  /**
+   * Proximity search using the Haversine formula.
+   *
+   * Formula: distance = 2R * arcsin(sqrt(
+   *   sin²(Δlat/2) + cos(lat1) * cos(lat2) * sin²(Δlon/2)
+   * ))
+   */
   override def findNearby(
       lat: Double,
       lon: Double,
       p: Pagination
-  ): Future[Either[AppError, PagedResult[WifiPoint]]] =
-    run(countAndPage(points, p))
+  ): Future[Either[AppError, PagedResult[WifiPoint]]] = {
+
+    val R = 6371.0
+
+    val action = SimpleDBIO { session =>
+      val conn = session.connection
+
+      val countStmt = conn.prepareStatement("SELECT COUNT(*) FROM wifi_points")
+      val countRs   = countStmt.executeQuery()
+      countRs.next()
+      val total = countRs.getLong(1)
+      countRs.close()
+      countStmt.close()
+
+      val rowsSql =
+        s"""SELECT id, colonia, alcaldia, calle, programa, fecha_instalacion, lat, lon
+           |FROM wifi_points
+           |ORDER BY (
+           |  2 * $R * asin(sqrt(
+           |    power(sin(radians(lat - ?) / 2), 2) +
+           |    cos(radians(?)) * cos(radians(lat)) *
+           |    power(sin(radians(lon - ?) / 2), 2)
+           |  ))
+           |) ASC
+           |LIMIT ? OFFSET ?""".stripMargin
+
+      val stmt = conn.prepareStatement(rowsSql)
+      stmt.setDouble(1, lat)
+      stmt.setDouble(2, lat)
+      stmt.setDouble(3, lon)
+      stmt.setInt(4, p.limit)
+      stmt.setInt(5, p.offset)
+
+      val rs  = stmt.executeQuery()
+      val buf = scala.collection.mutable.ArrayBuffer.empty[WifiPointRow]
+
+      while (rs.next()) {
+        buf += WifiPointRow(
+          id               = rs.getLong("id"),
+          colonia          = rs.getString("colonia"),
+          alcaldia         = rs.getString("alcaldia"),
+          calle            = rs.getString("calle"),
+          programa         = rs.getString("programa"),
+          fechaInstalacion = Option(rs.getDate("fecha_instalacion")).map(_.toLocalDate),
+          lat              = rs.getDouble("lat"),
+          lon              = rs.getDouble("lon")
+        )
+      }
+      rs.close()
+      stmt.close()
+
+      PagedResult(buf.map(WifiPointRow.toDomain).toSeq, total, p.page, p.pageSize)
+    }
+
+    run(action)
+  }
 
   override def insertAll(pts: Seq[WifiPoint]): Future[Either[AppError, Int]] =
     run((TableQuery[WifiPointTable] ++= pts.map(WifiPointRow.fromDomain)).map(_.getOrElse(0)))
