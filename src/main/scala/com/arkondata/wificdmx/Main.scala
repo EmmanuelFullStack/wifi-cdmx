@@ -5,7 +5,7 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.Http.ServerBinding
 import akka.http.scaladsl.server.Directives._
-import com.arkondata.wificdmx.api.routes.WifiPointRoutes
+import com.arkondata.wificdmx.api.routes.{GraphQLRoute, WifiPointRoutes}
 import com.arkondata.wificdmx.repository.{DatabaseConfig, SlickWifiPointRepository}
 import com.arkondata.wificdmx.service.WifiPointServiceImpl
 import com.arkondata.wificdmx.util.DataSeeder
@@ -23,7 +23,7 @@ import scala.util.{Failure, Success}
 //   1. Actor system + execution context
 //   2. Config
 //   3. DB + repo + service
-//   4. HTTP routes
+//   4. REST routes + GraphQL route
 //   5. Async seeder (API available immediately while seeding)
 //   6. HTTP server bind
 //   7. Graceful shutdown hook
@@ -42,11 +42,12 @@ object Main extends App with LazyLogging {
   val localPath = config.getString("wifi-cdmx.data.local-path")
 
   // ── Infrastructure ────────────────────────────────────────
-  val dbConfig   = new DatabaseConfig(config)
-  val repo       = new SlickWifiPointRepository(dbConfig)
-  val service    = new WifiPointServiceImpl(repo)
-  val restRoutes = new WifiPointRoutes(service)
-  val seeder     = new DataSeeder(repo, xlsxUrl, localPath)
+  val dbConfig     = new DatabaseConfig(config)
+  val repo         = new SlickWifiPointRepository(dbConfig)
+  val service      = new WifiPointServiceImpl(repo)
+  val restRoutes   = new WifiPointRoutes(service)
+  val graphqlRoute = new GraphQLRoute(service)
+  val seeder       = new DataSeeder(repo, xlsxUrl, localPath)
 
   // ── Seeder (background — server available immediately) ────
   seeder.seed().onComplete {
@@ -56,16 +57,18 @@ object Main extends App with LazyLogging {
     case Failure(ex)                => logger.error("Seeder failed unexpectedly", ex)
   }
 
-  // ── HTTP server ───────────────────────────────────────────
+  // ── HTTP server (REST + GraphQL) ──────────────────────────
+  val allRoutes = restRoutes.routes ~ graphqlRoute.route
+
   val bindingFuture: Future[ServerBinding] =
-    Http().newServerAt(host, port).bind(restRoutes.routes)
+    Http().newServerAt(host, port).bind(allRoutes)
 
   bindingFuture.onComplete {
     case Success(binding) =>
       val addr = binding.localAddress
       logger.info(s"WiFi CDMX API running at http://${addr.getHostString}:${addr.getPort}/")
       logger.info(s"  REST:    http://${addr.getHostString}:${addr.getPort}/api/v1/wifi")
-      logger.info("Seeder is running in background — data will be available shortly.")
+      logger.info(s"  GraphQL: http://${addr.getHostString}:${addr.getPort}/api/v1/graphql")
     case Failure(ex) =>
       logger.error(s"Failed to bind on $host:$port", ex)
       system.terminate()
