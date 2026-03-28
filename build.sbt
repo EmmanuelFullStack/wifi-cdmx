@@ -26,6 +26,10 @@ lazy val root = (project in file("."))
 
       // Functional programming
       "org.typelevel" %% "cats-core" % "2.12.0",
+
+      // XLSX parsing
+      "org.apache.poi" % "poi"       % "5.3.0",
+      "org.apache.poi" % "poi-ooxml" % "5.3.0",
     ),
 
     scalacOptions ++= Seq(
