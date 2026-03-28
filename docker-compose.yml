@@ -1,0 +1,39 @@
+version: "3.9"
+
+services:
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: wifi_cdmx_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       wificdmx
+      POSTGRES_USER:     postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d wificdmx"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  flyway:
+    image: flyway/flyway:10-alpine
+    container_name: wifi_cdmx_flyway
+    command: >
+      -url=jdbc:postgresql://postgres:5432/wificdmx
+      -user=postgres
+      -password=postgres
+      -locations=filesystem:/flyway/sql
+      migrate
+    volumes:
+      - ./sql:/flyway/sql:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
