@@ -19,3 +19,24 @@ RUN sbt update
 # Copy source and build fat JAR
 COPY src/ src/
 RUN sbt assembly
+
+# ── Stage 2: Runtime ─────────────────────────────────────────
+# Use JRE only — much smaller image than JDK (no compiler needed)
+FROM eclipse-temurin:17-jre-jammy AS runtime
+WORKDIR /app
+
+# Non-root user for security — never run as root in production
+RUN addgroup --system appgroup && \
+  adduser  --system --ingroup appgroup appuser
+
+COPY --from=builder /build/target/scala-2.13/wifi-cdmx.jar ./wifi-cdmx.jar
+RUN mkdir -p /app/data && chown -R appuser:appgroup /app
+
+USER appuser
+EXPOSE 8080
+
+ENTRYPOINT ["java", \
+  "-Djava.security.egd=file:/dev/./urandom", \
+  "-XX:+UseContainerSupport", \
+  "-XX:MaxRAMPercentage=75.0", \
+  "-jar", "wifi-cdmx.jar"]
