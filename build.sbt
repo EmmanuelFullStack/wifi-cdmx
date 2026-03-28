@@ -23,6 +23,9 @@ lazy val root = (project in file("."))
       "com.typesafe.slick" %% "slick"          % "3.5.1",
       "com.typesafe.slick" %% "slick-hikaricp" % "3.5.1",
       "org.postgresql"     %  "postgresql"     % "42.7.3",
+
+      // Functional programming
+      "org.typelevel" %% "cats-core" % "2.12.0",
     ),
 
     scalacOptions ++= Seq(
