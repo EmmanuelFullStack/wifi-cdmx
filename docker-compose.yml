@@ -35,5 +35,31 @@ services:
       postgres:
         condition: service_healthy
 
+  app:
+    build: { context: ., dockerfile: Dockerfile }
+    container_name: wifi_cdmx_app
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      HTTP_HOST:       "0.0.0.0"
+      HTTP_PORT:       "8080"
+      DB_URL:          "jdbc:postgresql://postgres:5432/wificdmx"
+      DB_USER:         "postgres"
+      DB_PASSWORD:     "postgres"
+      DATA_URL:        "https://datos.cdmx.gob.mx/dataset/0a2e3fb1-5ff0-4a64-9f3d-c065e7018858/resource/ae7f6877-53ee-4fbe-85a4-db8d773d637b/download/00-2025-wifi_gratuito_en_cdmx.xlsx"
+      DATA_LOCAL_PATH: "/app/data/wifi-cdmx.xlsx"
+    volumes:
+      - xlsx_cache:/app/data
+    depends_on:
+      flyway:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
 volumes:
   postgres_data:
+  xlsx_cache:
