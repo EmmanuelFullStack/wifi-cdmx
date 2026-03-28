@@ -17,7 +17,12 @@ lazy val root = (project in file("."))
       // Config & Logging
       "com.typesafe"               %  "config"          % "1.4.3",
       "ch.qos.logback"             %  "logback-classic" % "1.5.6",
-      "com.typesafe.scala-logging" %% "scala-logging"   % "3.9.5"
+      "com.typesafe.scala-logging" %% "scala-logging"   % "3.9.5",
+
+      // Database
+      "com.typesafe.slick" %% "slick"          % "3.5.1",
+      "com.typesafe.slick" %% "slick-hikaricp" % "3.5.1",
+      "org.postgresql"     %  "postgresql"     % "42.7.3",
     ),
 
     scalacOptions ++= Seq(
