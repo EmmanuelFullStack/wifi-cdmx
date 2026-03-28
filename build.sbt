@@ -34,6 +34,13 @@ lazy val root = (project in file("."))
       // GraphQL
       "org.sangria-graphql" %% "sangria"            % "4.1.0",
       "org.sangria-graphql" %% "sangria-spray-json" % "1.0.3",
+
+      // Test
+      "com.typesafe.akka" %% "akka-http-testkit"        % "10.5.3"  % Test,
+      "com.typesafe.akka" %% "akka-stream-testkit"      % "2.8.6"   % Test,
+      "com.typesafe.akka" %% "akka-actor-testkit-typed" % "2.8.6"   % Test,
+      "org.scalatest"     %% "scalatest"                 % "3.2.18"  % Test,
+      "com.h2database"    %  "h2"                        % "2.2.224" % Test
     ),
 
     scalacOptions ++= Seq(
