@@ -17,9 +17,16 @@ final class DatabaseConfig(config: Config) extends LazyLogging {
     props.setProperty("connectionTimeout", poolCfg.getLong("connection-timeout").toString)
     props.setProperty("idleTimeout",       poolCfg.getLong("idle-timeout").toString)
 
+    val url  = dbCfg.getString("url")
+    val user = dbCfg.getString("user")
+
+    val maskedUrl = url.replaceAll(":[^:@/]+@", ":***@")
+    logger.info(s"Connecting to database: $maskedUrl as user=$user")
+    logger.info(s"Pool: max=${poolCfg.getInt("max-connections")} min-idle=${poolCfg.getInt("min-idle")}")
+
     Database.forURL(
-      url      = dbCfg.getString("url"),
-      user     = dbCfg.getString("user"),
+      url      = url,
+      user     = user,
       password = dbCfg.getString("password"),
       driver   = dbCfg.getString("driver"),
       prop     = props
