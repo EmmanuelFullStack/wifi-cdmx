@@ -2,27 +2,33 @@ ThisBuild / version      := "1.0.0"
 ThisBuild / scalaVersion := "2.13.14"
 ThisBuild / organization := "com.arkondata"
 
+inThisBuild(
+  List(
+    scalaVersion      := "2.13.14",
+    semanticdbEnabled := true,
+    semanticdbVersion := scalafixSemanticdb.revision
+  )
+)
+
 lazy val root = (project in file("."))
   .settings(
     name := "wifi-cdmx",
-
     libraryDependencies ++= Seq(
-
       // Akka HTTP (REST API)
       "com.typesafe.akka" %% "akka-http"            % "10.5.3",
       "com.typesafe.akka" %% "akka-http-spray-json" % "10.5.3",
-      "com.typesafe.akka" %% "akka-stream"           % "2.8.6",
-      "com.typesafe.akka" %% "akka-actor-typed"      % "2.8.6",
+      "com.typesafe.akka" %% "akka-stream"          % "2.8.6",
+      "com.typesafe.akka" %% "akka-actor-typed"     % "2.8.6",
 
       // Config & Logging
-      "com.typesafe"               %  "config"          % "1.4.3",
-      "ch.qos.logback"             %  "logback-classic" % "1.5.6",
+      "com.typesafe"                % "config"          % "1.4.3",
+      "ch.qos.logback"              % "logback-classic" % "1.5.6",
       "com.typesafe.scala-logging" %% "scala-logging"   % "3.9.5",
 
       // Database
       "com.typesafe.slick" %% "slick"          % "3.5.1",
       "com.typesafe.slick" %% "slick-hikaricp" % "3.5.1",
-      "org.postgresql"     %  "postgresql"     % "42.7.3",
+      "org.postgresql"      % "postgresql"     % "42.7.3",
 
       // Functional programming
       "org.typelevel" %% "cats-core" % "2.12.0",
@@ -39,19 +45,21 @@ lazy val root = (project in file("."))
       "com.typesafe.akka" %% "akka-http-testkit"        % "10.5.3"  % Test,
       "com.typesafe.akka" %% "akka-stream-testkit"      % "2.8.6"   % Test,
       "com.typesafe.akka" %% "akka-actor-testkit-typed" % "2.8.6"   % Test,
-      "org.scalatest"     %% "scalatest"                 % "3.2.18"  % Test,
-      "com.h2database"    %  "h2"                        % "2.2.224" % Test
+      "org.scalatest"     %% "scalatest"                % "3.2.18"  % Test,
+      "com.h2database"     % "h2"                       % "2.2.224" % Test
     ),
-
     scalacOptions ++= Seq(
-      "-encoding", "utf8",
+      "-encoding",
+      "utf8",
       "-feature",
       "-deprecation",
       "-unchecked",
       "-language:higherKinds",
-      "-language:implicitConversions"
+      "-language:implicitConversions",
+      "-Wunused:imports",
+      "-Wunused:locals",
+      "-Wunused:params"
     ),
-
     assembly / mainClass       := Some("com.arkondata.wificdmx.Main"),
     assembly / assemblyJarName := "wifi-cdmx.jar",
     assembly / assemblyMergeStrategy := {

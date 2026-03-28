@@ -30,45 +30,52 @@ final class GraphQLRoute(service: WifiPointService)(implicit ec: ExecutionContex
       get {
         complete(HttpEntity(ContentTypes.`text/html(UTF-8)`, graphiqlHtml))
       } ~
-      post {
-        entity(as[JsObject]) { body =>
-          val queryStr  = body.fields.get("query").map(_.convertTo[String]).getOrElse("")
-          val variables = body.fields.get("variables")
-            .collect { case o: JsObject => o }
-            .getOrElse(JsObject.empty)
+        post {
+          entity(as[JsObject]) { body =>
+            val queryStr = body.fields.get("query").map(_.convertTo[String]).getOrElse("")
+            val variables = body.fields
+              .get("variables")
+              .collect { case o: JsObject => o }
+              .getOrElse(JsObject.empty)
 
-          if (queryStr.trim.isEmpty)
-            complete(StatusCodes.BadRequest ->
-              JsObject("error" -> JsString("Query must not be empty")))
-          else
-            QueryParser.parse(queryStr) match {
-              case Failure(ex) =>
-                complete(StatusCodes.BadRequest ->
-                  JsObject("error" -> JsString(s"Invalid GraphQL syntax: ${ex.getMessage}")))
-
-              case Success(queryDoc) =>
-                onComplete(
-                  Executor.execute(
-                    schema        = schema,
-                    queryAst      = queryDoc,
-                    variables     = variables,
-                    queryReducers = List(depthReducer)
+            if (queryStr.trim.isEmpty)
+              complete(
+                StatusCodes.BadRequest ->
+                  JsObject("error" -> JsString("Query must not be empty"))
+              )
+            else
+              QueryParser.parse(queryStr) match {
+                case Failure(ex) =>
+                  complete(
+                    StatusCodes.BadRequest ->
+                      JsObject("error" -> JsString(s"Invalid GraphQL syntax: ${ex.getMessage}"))
                   )
-                ) {
-                  case Success(result: JsValue) => complete(result)
-                  case Success(other)           => complete(other.toString)
-                  case Failure(ex: QueryAnalysisError) =>
-                    complete(StatusCodes.BadRequest -> ex.resolveError)
-                  case Failure(ex: ErrorWithResolver) =>
-                    complete(StatusCodes.InternalServerError -> ex.resolveError)
-                  case Failure(ex) =>
-                    logger.error("Unexpected GraphQL execution error", ex)
-                    complete(StatusCodes.InternalServerError ->
-                      JsObject("error" -> JsString("Internal server error")))
-                }
-            }
+
+                case Success(queryDoc) =>
+                  onComplete(
+                    Executor.execute(
+                      schema = schema,
+                      queryAst = queryDoc,
+                      variables = variables,
+                      queryReducers = List(depthReducer)
+                    )
+                  ) {
+                    case Success(result: JsValue) => complete(result)
+                    case Success(other)           => complete(other.toString)
+                    case Failure(ex: QueryAnalysisError) =>
+                      complete(StatusCodes.BadRequest -> ex.resolveError)
+                    case Failure(ex: ErrorWithResolver) =>
+                      complete(StatusCodes.InternalServerError -> ex.resolveError)
+                    case Failure(ex) =>
+                      logger.error("Unexpected GraphQL execution error", ex)
+                      complete(
+                        StatusCodes.InternalServerError ->
+                          JsObject("error" -> JsString("Internal server error"))
+                      )
+                  }
+              }
+          }
         }
-      }
     }
 
   private val graphiqlHtml: String =

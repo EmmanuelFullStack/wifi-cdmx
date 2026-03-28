@@ -14,10 +14,11 @@ import scala.jdk.CollectionConverters._
 import scala.util.{Try, Using}
 
 final class DataSeeder(
-    repo:      WifiPointRepository,
-    xlsxUrl:   String,
+    repo: WifiPointRepository,
+    xlsxUrl: String,
     localPath: String
-)(implicit ec: ExecutionContext) extends LazyLogging {
+)(implicit ec: ExecutionContext)
+    extends LazyLogging {
 
   private val dateFormatters = List(
     DateTimeFormatter.ofPattern("yyyy-MM-dd"),
@@ -36,30 +37,32 @@ final class DataSeeder(
 
   private def cellString(cell: Cell): String =
     if (cell == null) ""
-    else cell.getCellType match {
-      case CellType.STRING  => cell.getStringCellValue.trim
-      case CellType.NUMERIC =>
-        if (org.apache.poi.ss.usermodel.DateUtil.isCellDateFormatted(cell))
-          cell.getLocalDateTimeCellValue.toLocalDate.toString
-        else {
-          val d = cell.getNumericCellValue
-          if (d == d.toLong) d.toLong.toString else d.toString
-        }
-      case CellType.BOOLEAN => cell.getBooleanCellValue.toString
-      case CellType.FORMULA =>
-        Try(cell.getStringCellValue)
-          .orElse(Try(cell.getNumericCellValue.toString))
-          .getOrElse("")
-      case _ => ""
-    }
+    else
+      cell.getCellType match {
+        case CellType.STRING => cell.getStringCellValue.trim
+        case CellType.NUMERIC =>
+          if (org.apache.poi.ss.usermodel.DateUtil.isCellDateFormatted(cell))
+            cell.getLocalDateTimeCellValue.toLocalDate.toString
+          else {
+            val d = cell.getNumericCellValue
+            if (d == d.toLong) d.toLong.toString else d.toString
+          }
+        case CellType.BOOLEAN => cell.getBooleanCellValue.toString
+        case CellType.FORMULA =>
+          Try(cell.getStringCellValue)
+            .orElse(Try(cell.getNumericCellValue.toString))
+            .getOrElse("")
+        case _ => ""
+      }
 
   private def cellDouble(cell: Cell): Option[Double] =
     if (cell == null) None
-    else cell.getCellType match {
-      case CellType.NUMERIC => Some(cell.getNumericCellValue)
-      case CellType.STRING  => Try(cell.getStringCellValue.trim.toDouble).toOption
-      case _                => None
-    }
+    else
+      cell.getCellType match {
+        case CellType.NUMERIC => Some(cell.getNumericCellValue)
+        case CellType.STRING  => Try(cell.getStringCellValue.trim.toDouble).toOption
+        case _                => None
+      }
 
   private def parseXlsx(file: File): Either[AppError, Seq[WifiPoint]] = {
     logger.info(s"Parsing XLSX: ${file.getName}")
@@ -69,7 +72,9 @@ final class DataSeeder(
         val allRows = sheet.iterator().asScala.toSeq
         if (allRows.isEmpty) throw new RuntimeException("XLSX sheet is empty")
 
-        val headers: Map[String, Int] = allRows.head.cellIterator().asScala
+        val headers: Map[String, Int] = allRows.head
+          .cellIterator()
+          .asScala
           .map(c => cellString(c).toLowerCase.trim -> c.getColumnIndex)
           .toMap
 
@@ -91,23 +96,24 @@ final class DataSeeder(
             s"Lat/lon columns not found. Available: ${headers.keys.mkString(", ")}"
           )
 
-        val (skipped, points) = allRows.tail.zipWithIndex.partitionMap {
-          case (row, idx) =>
-            val str: Int => String = i => cellString(row.getCell(i))
-            (cellDouble(row.getCell(latIdx.get)),
-             cellDouble(row.getCell(lonIdx.get))) match {
-              case (Some(lat), Some(lon))
-                  if lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180 =>
-                Right(WifiPoint(0L,
+        val (skipped, points) = allRows.tail.zipWithIndex.partitionMap { case (row, idx) =>
+          val str: Int => String = i => cellString(row.getCell(i))
+          (cellDouble(row.getCell(latIdx.get)), cellDouble(row.getCell(lonIdx.get))) match {
+            case (Some(lat), Some(lon)) if lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180 =>
+              Right(
+                WifiPoint(
+                  0L,
                   colIdx.map(str).getOrElse(""),
                   alcIdx.map(str).getOrElse(""),
                   calIdx.map(str).getOrElse(""),
                   progIdx.map(str).getOrElse(""),
                   fechIdx.map(str).flatMap(parseDate),
-                  Coordinates(lat, lon)))
-              case _ =>
-                Left(s"row ${idx + 2}: invalid coordinates")
-            }
+                  Coordinates(lat, lon)
+                )
+              )
+            case _ =>
+              Left(s"row ${idx + 2}: invalid coordinates")
+          }
         }
 
         if (skipped.nonEmpty)
@@ -124,8 +130,8 @@ final class DataSeeder(
       val dest = new File(localPath)
       dest.getParentFile.mkdirs()
 
-      var currentUrl = xlsxUrl
-      var redirects  = 0
+      var currentUrl              = xlsxUrl
+      var redirects               = 0
       var conn: HttpURLConnection = null
 
       while (redirects < 6) {
@@ -135,8 +141,8 @@ final class DataSeeder(
         conn.setReadTimeout(120_000)
         conn.setRequestProperty("User-Agent", "wifi-cdmx-seeder/1.0")
         conn.getResponseCode match {
-          case HttpURLConnection.HTTP_OK    => redirects = Int.MaxValue
-          case code @ (301|302|303|307|308) =>
+          case HttpURLConnection.HTTP_OK => redirects = Int.MaxValue
+          case code @ (301 | 302 | 303 | 307 | 308) =>
             val loc = conn.getHeaderField("Location")
             conn.disconnect()
             logger.debug(s"HTTP $code → $loc")
@@ -150,7 +156,7 @@ final class DataSeeder(
       Using(conn.getInputStream) { in =>
         Using(new FileOutputStream(dest)) { out =>
           val buf = new Array[Byte](8192)
-          var n = 0; var total = 0L
+          var n   = 0; var total = 0L
           while ({ n = in.read(buf); n != -1 }) {
             out.write(buf, 0, n); total += n
           }
@@ -164,10 +170,10 @@ final class DataSeeder(
   private def bulkInsert(points: Seq[WifiPoint]): Future[Either[AppError, Int]] = {
     val batches = points.grouped(500).toSeq
     logger.info(s"Inserting ${points.size} rows in ${batches.size} batches")
-    batches.foldLeft(Future.successful(Right(0): Either[AppError, Int])) {
-      case (accF, batch) => accF.flatMap {
-        case Left(err)  => Future.successful(Left(err))
-        case Right(n)   => repo.insertAll(batch).map(_.map(_ + n))
+    batches.foldLeft(Future.successful(Right(0): Either[AppError, Int])) { case (accF, batch) =>
+      accF.flatMap {
+        case Left(err) => Future.successful(Left(err))
+        case Right(n)  => repo.insertAll(batch).map(_.map(_ + n))
       }
     }
   }
@@ -186,12 +192,12 @@ final class DataSeeder(
             Right(f)
           } else downloadFile()
         }).flatMap {
-          case Left(err)   =>
+          case Left(err) =>
             logger.error(s"Seed aborted: $err")
             Future.successful(Left(err))
           case Right(file) =>
             parseXlsx(file) match {
-              case Left(err)     =>
+              case Left(err) =>
                 logger.error(s"Seed aborted: $err")
                 Future.successful(Left(err))
               case Right(points) =>

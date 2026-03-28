@@ -12,24 +12,26 @@ final class DatabaseConfig(config: Config) extends LazyLogging {
 
   val db: PostgresProfile.backend.Database = {
     val props = new java.util.Properties()
-    props.setProperty("maximumPoolSize",   poolCfg.getInt("max-connections").toString)
-    props.setProperty("minimumIdle",       poolCfg.getInt("min-idle").toString)
+    props.setProperty("maximumPoolSize", poolCfg.getInt("max-connections").toString)
+    props.setProperty("minimumIdle", poolCfg.getInt("min-idle").toString)
     props.setProperty("connectionTimeout", poolCfg.getLong("connection-timeout").toString)
-    props.setProperty("idleTimeout",       poolCfg.getLong("idle-timeout").toString)
+    props.setProperty("idleTimeout", poolCfg.getLong("idle-timeout").toString)
 
     val url  = dbCfg.getString("url")
     val user = dbCfg.getString("user")
 
     val maskedUrl = url.replaceAll(":[^:@/]+@", ":***@")
     logger.info(s"Connecting to database: $maskedUrl as user=$user")
-    logger.info(s"Pool: max=${poolCfg.getInt("max-connections")} min-idle=${poolCfg.getInt("min-idle")}")
+    logger.info(
+      s"Pool: max=${poolCfg.getInt("max-connections")} min-idle=${poolCfg.getInt("min-idle")}"
+    )
 
     Database.forURL(
-      url      = url,
-      user     = user,
+      url = url,
+      user = user,
       password = dbCfg.getString("password"),
-      driver   = dbCfg.getString("driver"),
-      prop     = props
+      driver = dbCfg.getString("driver"),
+      prop = props
     )
   }
 
