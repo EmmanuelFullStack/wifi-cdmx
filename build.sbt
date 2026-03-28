@@ -30,6 +30,10 @@ lazy val root = (project in file("."))
       // XLSX parsing
       "org.apache.poi" % "poi"       % "5.3.0",
       "org.apache.poi" % "poi-ooxml" % "5.3.0",
+
+      // GraphQL
+      "org.sangria-graphql" %% "sangria"            % "4.1.0",
+      "org.sangria-graphql" %% "sangria-spray-json" % "1.0.3",
     ),
 
     scalacOptions ++= Seq(
