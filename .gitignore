@@ -1,0 +1,25 @@
+# sbt
+target/
+project/target/
+project/project/
+
+# IDE
+.idea/
+.bsp/
+.metals/
+.bloop/
+
+# Scala
+*.class
+*.log
+
+# Data files (el XLSX se descarga automáticamente)
+data/*.xlsx
+data/*.csv
+
+# Environment
+.env
+
+# OS
+.DS_Store
+Thumbs.db
