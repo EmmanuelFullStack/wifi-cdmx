@@ -10,13 +10,21 @@ import scala.util.control.NonFatal
 trait WifiPointRepository {
   def findById(id: Long): Future[Either[AppError, WifiPoint]]
   def findAll(pagination: Pagination): Future[Either[AppError, PagedResult[WifiPoint]]]
-  def findByAlcaldia(alcaldia: String, pagination: Pagination): Future[Either[AppError, PagedResult[WifiPoint]]]
-  def findNearby(lat: Double, lon: Double, pagination: Pagination): Future[Either[AppError, PagedResult[WifiPoint]]]
+  def findByAlcaldia(
+      alcaldia: String,
+      pagination: Pagination
+  ): Future[Either[AppError, PagedResult[WifiPoint]]]
+  def findNearby(
+      lat: Double,
+      lon: Double,
+      pagination: Pagination
+  ): Future[Either[AppError, PagedResult[WifiPoint]]]
   def insertAll(points: Seq[WifiPoint]): Future[Either[AppError, Int]]
 }
 
 final class SlickWifiPointRepository(dbConfig: DatabaseConfig)(implicit ec: ExecutionContext)
-    extends WifiPointRepository with LazyLogging {
+    extends WifiPointRepository
+    with LazyLogging {
 
   private val db     = dbConfig.db
   private val points = TableQuery[WifiPointTable]
@@ -45,13 +53,10 @@ final class SlickWifiPointRepository(dbConfig: DatabaseConfig)(implicit ec: Exec
   ): Future[Either[AppError, PagedResult[WifiPoint]]] =
     run(countAndPage(points.filter(_.alcaldia.toLowerCase === alcaldia.toLowerCase), p))
 
-  /**
-   * Proximity search using the Haversine formula.
-   *
-   * Formula: distance = 2R * arcsin(sqrt(
-   *   sin²(Δlat/2) + cos(lat1) * cos(lat2) * sin²(Δlon/2)
-   * ))
-   */
+  /** Proximity search using the Haversine formula.
+    *
+    * Formula: distance = 2R * arcsin(sqrt( sin²(Δlat/2) + cos(lat1) * cos(lat2) * sin²(Δlon/2) ))
+    */
   override def findNearby(
       lat: Double,
       lon: Double,
@@ -94,14 +99,14 @@ final class SlickWifiPointRepository(dbConfig: DatabaseConfig)(implicit ec: Exec
 
       while (rs.next()) {
         buf += WifiPointRow(
-          id               = rs.getLong("id"),
-          colonia          = rs.getString("colonia"),
-          alcaldia         = rs.getString("alcaldia"),
-          calle            = rs.getString("calle"),
-          programa         = rs.getString("programa"),
+          id = rs.getLong("id"),
+          colonia = rs.getString("colonia"),
+          alcaldia = rs.getString("alcaldia"),
+          calle = rs.getString("calle"),
+          programa = rs.getString("programa"),
           fechaInstalacion = Option(rs.getDate("fecha_instalacion")).map(_.toLocalDate),
-          lat              = rs.getDouble("lat"),
-          lon              = rs.getDouble("lon")
+          lat = rs.getDouble("lat"),
+          lon = rs.getDouble("lon")
         )
       }
       rs.close()

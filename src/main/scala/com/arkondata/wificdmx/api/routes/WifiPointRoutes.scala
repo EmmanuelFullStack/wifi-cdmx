@@ -15,20 +15,26 @@ import scala.util.{Failure, Success}
 final class WifiPointRoutes(service: WifiPointService) extends LazyLogging {
 
   private def errorToResponse(err: AppError): Route = err match {
-    case AppError.NotFound(msg)        => complete(StatusCodes.NotFound            -> ErrorResponse("NOT_FOUND",        msg))
-    case AppError.ValidationError(msg) => complete(StatusCodes.BadRequest          -> ErrorResponse("VALIDATION_ERROR", msg))
-    case AppError.DatabaseError(msg,_) => complete(StatusCodes.InternalServerError -> ErrorResponse("DATABASE_ERROR",   msg))
-    case AppError.ImportError(msg)     => complete(StatusCodes.InternalServerError -> ErrorResponse("IMPORT_ERROR",     msg))
+    case AppError.NotFound(msg) => complete(StatusCodes.NotFound -> ErrorResponse("NOT_FOUND", msg))
+    case AppError.ValidationError(msg) =>
+      complete(StatusCodes.BadRequest -> ErrorResponse("VALIDATION_ERROR", msg))
+    case AppError.DatabaseError(msg, _) =>
+      complete(StatusCodes.InternalServerError -> ErrorResponse("DATABASE_ERROR", msg))
+    case AppError.ImportError(msg) =>
+      complete(StatusCodes.InternalServerError -> ErrorResponse("IMPORT_ERROR", msg))
   }
 
   private def serverError(msg: String): Route =
     complete(StatusCodes.InternalServerError -> ErrorResponse("INTERNAL_ERROR", msg))
 
   private val missingParamHandler: RejectionHandler =
-    RejectionHandler.newBuilder()
+    RejectionHandler
+      .newBuilder()
       .handle { case MissingQueryParamRejection(p) =>
-        complete(StatusCodes.BadRequest ->
-          ErrorResponse("MISSING_PARAM", s"Required parameter '$p' is missing"))
+        complete(
+          StatusCodes.BadRequest ->
+            ErrorResponse("MISSING_PARAM", s"Required parameter '$p' is missing")
+        )
       }
       .result()
 
@@ -37,20 +43,20 @@ final class WifiPointRoutes(service: WifiPointService) extends LazyLogging {
 
   def routes: Route =
     healthRoute ~
-    swaggerRoute ~
-    pathPrefix("api" / "v1") { wifiRoutes }
+      swaggerRoute ~
+      pathPrefix("api" / "v1") { wifiRoutes }
 
   private def healthRoute: Route =
     path("health") {
       get {
         onComplete(service.getAll(1, 1)) {
           case Success(Right(_)) =>
-            complete(HttpEntity(ContentTypes.`application/json`,
-              """{"status":"UP","db":"UP"}"""))
+            complete(HttpEntity(ContentTypes.`application/json`, """{"status":"UP","db":"UP"}"""))
           case _ =>
-            complete(StatusCodes.ServiceUnavailable ->
-              HttpEntity(ContentTypes.`application/json`,
-                """{"status":"UP","db":"DOWN"}"""))
+            complete(
+              StatusCodes.ServiceUnavailable ->
+                HttpEntity(ContentTypes.`application/json`, """{"status":"UP","db":"DOWN"}""")
+            )
         }
       }
     }
@@ -59,10 +65,12 @@ final class WifiPointRoutes(service: WifiPointService) extends LazyLogging {
     path("openapi.yaml") {
       get { getFromResource("openapi.yaml") }
     } ~
-    path("swagger") {
-      get {
-        complete(HttpEntity(ContentTypes.`text/html(UTF-8)`,
-          """<!DOCTYPE html>
+      path("swagger") {
+        get {
+          complete(
+            HttpEntity(
+              ContentTypes.`text/html(UTF-8)`,
+              """<!DOCTYPE html>
             |<html>
             |<head>
             |  <title>WiFi CDMX API – Docs</title>
@@ -83,23 +91,25 @@ final class WifiPointRoutes(service: WifiPointService) extends LazyLogging {
             |  })
             |</script>
             |</body>
-            |</html>""".stripMargin))
+            |</html>""".stripMargin
+            )
+          )
+        }
       }
-    }
 
   private def wifiRoutes: Route =
     handleRejections(missingParamHandler) {
       pathPrefix("wifi") {
         concat(
-
           path("nearby") {
             get {
               parameters("lat".as[Double], "lon".as[Double]) { (lat, lon) =>
                 paginationParams { (page, pageSize) =>
                   onComplete(service.getNearby(lat, lon, page, pageSize)) {
-                    case Success(Right(p))  => complete(PagedResponse.fromDomain(p, WifiPointDto.fromDomain))
+                    case Success(Right(p)) =>
+                      complete(PagedResponse.fromDomain(p, WifiPointDto.fromDomain))
                     case Success(Left(err)) => errorToResponse(err)
-                    case Failure(ex)        =>
+                    case Failure(ex) =>
                       logger.error("getNearby failed", ex)
                       serverError("Unexpected error")
                   }
@@ -107,13 +117,12 @@ final class WifiPointRoutes(service: WifiPointService) extends LazyLogging {
               }
             }
           },
-
           path(LongNumber) { id =>
             get {
               onComplete(service.getById(id)) {
                 case Success(Right(pt)) => complete(WifiPointDto.fromDomain(pt))
                 case Success(Left(err)) => errorToResponse(err)
-                case Failure(ex)        =>
+                case Failure(ex) =>
                   logger.error(s"getById id=$id failed", ex)
                   serverError("Unexpected error")
               }
@@ -128,9 +137,10 @@ final class WifiPointRoutes(service: WifiPointService) extends LazyLogging {
                     case None    => service.getAll(page, pageSize)
                   }
                   onComplete(result) {
-                    case Success(Right(p))  => complete(PagedResponse.fromDomain(p, WifiPointDto.fromDomain))
+                    case Success(Right(p)) =>
+                      complete(PagedResponse.fromDomain(p, WifiPointDto.fromDomain))
                     case Success(Left(err)) => errorToResponse(err)
-                    case Failure(ex)        =>
+                    case Failure(ex) =>
                       logger.error("getAll failed", ex)
                       serverError("Unexpected error")
                   }

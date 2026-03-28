@@ -8,20 +8,20 @@ import java.time.format.DateTimeFormatter
 final case class CoordinatesDto(lat: Double, lon: Double)
 
 final case class WifiPointDto(
-    id:               Long,
-    colonia:          String,
-    alcaldia:         String,
-    calle:            String,
-    programa:         String,
+    id: Long,
+    colonia: String,
+    alcaldia: String,
+    calle: String,
+    programa: String,
     fechaInstalacion: Option[String],
-    coordinates:      CoordinatesDto
+    coordinates: CoordinatesDto
 )
 
 final case class PagedResponse[A](
-    data:       Seq[A],
-    total:      Long,
-    page:       Int,
-    pageSize:   Int,
+    data: Seq[A],
+    total: Long,
+    page: Int,
+    pageSize: Int,
     totalPages: Long
 )
 
@@ -32,13 +32,13 @@ object WifiPointDto {
 
   def fromDomain(wp: WifiPoint): WifiPointDto =
     WifiPointDto(
-      id               = wp.id,
-      colonia          = wp.colonia,
-      alcaldia         = wp.alcaldia,
-      calle            = wp.calle,
-      programa         = wp.programa,
+      id = wp.id,
+      colonia = wp.colonia,
+      alcaldia = wp.alcaldia,
+      calle = wp.calle,
+      programa = wp.programa,
       fechaInstalacion = wp.fechaInstalacion.map(_.format(fmt)),
-      coordinates      = CoordinatesDto(wp.coordinates.lat, wp.coordinates.lon)
+      coordinates = CoordinatesDto(wp.coordinates.lat, wp.coordinates.lon)
     )
 }
 
@@ -48,9 +48,9 @@ object PagedResponse {
 }
 
 object JsonProtocol extends DefaultJsonProtocol {
-  implicit val coordinatesFormat: RootJsonFormat[CoordinatesDto]  = jsonFormat2(CoordinatesDto)
-  implicit val wifiPointFormat:   RootJsonFormat[WifiPointDto]    = jsonFormat7(WifiPointDto.apply)
-  implicit val errorFormat:       RootJsonFormat[ErrorResponse]   = jsonFormat2(ErrorResponse)
+  implicit val coordinatesFormat: RootJsonFormat[CoordinatesDto] = jsonFormat2(CoordinatesDto)
+  implicit val wifiPointFormat: RootJsonFormat[WifiPointDto]     = jsonFormat7(WifiPointDto.apply)
+  implicit val errorFormat: RootJsonFormat[ErrorResponse]        = jsonFormat2(ErrorResponse)
   implicit def pagedFormat[A: JsonFormat]: RootJsonFormat[PagedResponse[A]] =
     jsonFormat5(PagedResponse.apply[A])
 }
