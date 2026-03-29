@@ -6,6 +6,15 @@ import sangria.schema._
 
 import scala.concurrent.ExecutionContext
 
+/** GraphQL Schema Definition using Sangria.
+  *
+  * This object maps domain models to GraphQL types and defines the
+  * root Query fields:
+  * - 'wifiPoints': List all or filter by borough.
+  * - 'wifiPoint': Find by ID.
+  * - 'nearbyPoints': Find sorted by proximity.
+  */
+
 object GraphQLSchema {
 
   val CoordinatesType: ObjectType[Unit, Coordinates] =

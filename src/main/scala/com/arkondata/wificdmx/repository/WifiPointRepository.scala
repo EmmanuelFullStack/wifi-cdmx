@@ -7,6 +7,13 @@ import slick.jdbc.PostgresProfile.api._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
+/** Persistence Layer for WiFi Points.
+  *
+  * This repository provides operations for interacting with the database
+  * using Slick. It covers CRUD-like operations (find, insert) and specialized
+  * geospatial searches.
+  */
+
 trait WifiPointRepository {
   def findById(id: Long): Future[Either[AppError, WifiPoint]]
   def findAll(pagination: Pagination): Future[Either[AppError, PagedResult[WifiPoint]]]
@@ -55,7 +62,8 @@ final class SlickWifiPointRepository(dbConfig: DatabaseConfig)(implicit ec: Exec
 
   /** Proximity search using the Haversine formula.
     *
-    * Formula: distance = 2R * arcsin(sqrt( sin²(Δlat/2) + cos(lat1) * cos(lat2) * sin²(Δlon/2) ))
+    * The formula calculates the distance between two points on a sphere (Earth).
+    * formula: distance = 2R * arcsin(sqrt( sin²(Δlat/2) + cos(lat1) * cos(lat2) * sin²(Δlon/2) ))
     */
   override def findNearby(
       lat: Double,

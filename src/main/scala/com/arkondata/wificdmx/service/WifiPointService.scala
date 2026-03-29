@@ -8,6 +8,14 @@ import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent.{ExecutionContext, Future}
 
+/** Business Logic Layer for WiFi CDMX Points.
+  *
+  * This service handles:
+  * 1. Request validation (coordinates, pagination, IDs).
+  * 2. Orchestration between repositories and callers.
+  * 3. Functional error handling using EitherT for concise logic.
+  */
+
 trait WifiPointService {
   def getById(id: Long): Future[Either[AppError, WifiPoint]]
   def getAll(page: Int, pageSize: Int): Future[Either[AppError, PagedResult[WifiPoint]]]
@@ -28,6 +36,11 @@ final class WifiPointServiceImpl(repo: WifiPointRepository)(implicit ec: Executi
     extends WifiPointService
     with LazyLogging {
 
+  /** Validates pagination parameters.
+    *
+    * @param page Must be >= 1.
+    * @param pageSize Must be between 1 and 200.
+    */
   private def validatePagination(page: Int, pageSize: Int): Either[AppError, Pagination] =
     if (page < 1) Left(AppError.ValidationError("'page' must be >= 1"))
     else if (pageSize < 1 || pageSize > 200)
