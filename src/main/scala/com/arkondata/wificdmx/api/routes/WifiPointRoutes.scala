@@ -12,6 +12,13 @@ import com.typesafe.scalalogging.LazyLogging
 
 import scala.util.{Failure, Success}
 
+/** REST API Routes for WiFi CDMX.
+  *
+  * Defined using Akka HTTP DSL.
+  * - Includes endpoints for health checking, interactive Swagger UI (OpenAPI),
+  *   and several WiFi point retrieval operations (all, by ID, by borough, by proximity).
+  */
+
 final class WifiPointRoutes(service: WifiPointService) extends LazyLogging {
 
   private def errorToResponse(err: AppError): Route = err match {

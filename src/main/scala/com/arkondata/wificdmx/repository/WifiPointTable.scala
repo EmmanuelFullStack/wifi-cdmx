@@ -6,6 +6,13 @@ import slick.lifted.ProvenShape
 
 import java.time.LocalDate
 
+/** Slick Table Definition and Row Mapper for WiFi Points.
+  *
+  * This file contains:
+  * - WifiPointRow: A flattened version of the domain model for database storage.
+  * - WifiPointTable: The Slick table mapping that defines the "wifi_points" schema.
+  */
+
 private[repository] final case class WifiPointRow(
     id: Long,
     colonia: String,

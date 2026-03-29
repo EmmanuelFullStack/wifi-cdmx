@@ -5,6 +5,13 @@ import spray.json._
 
 import java.time.format.DateTimeFormatter
 
+/** API Data Transfer Objects (DTOs) and JSON Protocols.
+  *
+  * This file defines the external-facing models for the API.
+  * - Included: DTOs for WiFi points, coordinates, paginated responses, and errors.
+  * - JsonProtocol: Handles the serialization/deserialization logic using Spray JSON.
+  */
+
 final case class CoordinatesDto(lat: Double, lon: Double)
 
 final case class WifiPointDto(

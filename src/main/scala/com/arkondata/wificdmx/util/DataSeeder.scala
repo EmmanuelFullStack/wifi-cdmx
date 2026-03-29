@@ -13,6 +13,16 @@ import scala.concurrent.{ExecutionContext, Future, blocking}
 import scala.jdk.CollectionConverters._
 import scala.util.{Try, Using}
 
+/** Data Seeder Utility for WiFi CDMX points.
+  *
+  * This utility automates the initial data ingestion from the official CDMX data portal.
+  * The ETL pipeline consists of:
+  * 1. Check: Skips seeding if the database already contains records.
+  * 2. Download: Fetches the XLSX file from a remote URL if not cached locally.
+  * 3. Parse: Reads the Excel file, mapping dynamic column headers to the domain model.
+  * 4. Batched Insert: Inserts validated data records into the database in batches.
+  */
+
 final class DataSeeder(
     repo: WifiPointRepository,
     xlsxUrl: String,
@@ -178,6 +188,10 @@ final class DataSeeder(
     }
   }
 
+  /** Checks if seeding is required and starts the ETL process if so.
+    *
+    * @return Future indicating success or a specific AppError.
+    */
   def seed(): Future[Either[AppError, Int]] = {
     logger.info("DataSeeder: checking if seed is needed...")
     repo.findAll(Pagination(1, 1)).flatMap {

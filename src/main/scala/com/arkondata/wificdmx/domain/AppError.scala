@@ -1,5 +1,10 @@
 package com.arkondata.wificdmx.domain
 
+/** Centralized Error Definitions for the application.
+  *
+  * Uses a sealed trait 'AppError' to provide a exhaustive set of error types,
+  * which allows for powerful pattern matching in services and API layers.
+  */
 sealed trait AppError extends Product with Serializable
 
 object AppError {

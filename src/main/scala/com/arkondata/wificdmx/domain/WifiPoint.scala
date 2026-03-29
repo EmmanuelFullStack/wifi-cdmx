@@ -2,6 +2,15 @@ package com.arkondata.wificdmx.domain
 
 import java.time.LocalDate
 
+/** Domain Models for the WiFi CDMX project.
+  *
+  * This file defines the core entities:
+  * - WifiPoint: Represents a single WiFi access point.
+  * - Coordinates: Latitude and longitude representation.
+  * - Pagination: Utility for handling request pagination parameters.
+  * - PagedResult: Container for paginated response data and metadata.
+  */
+
 final case class Coordinates(lat: Double, lon: Double)
 
 final case class WifiPoint(
